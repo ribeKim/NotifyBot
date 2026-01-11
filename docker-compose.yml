@@ -1,0 +1,18 @@
+services:
+  app:
+    image: ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+
+    container_name: python-bot
+    restart: unless-stopped
+
+    working_dir: /app
+    volumes:
+      - .:/app
+
+    environment:
+      - UV_COMPILE_BYTECODE=1
+      - UV_LINK_MODE=copy
+      - DISCORD_TOKEN=<TOKEN>
+      - MONGO_URI=<URI>
+
+    command: uv run --locked --no-dev bot.py
