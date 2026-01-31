@@ -1,18 +1,35 @@
 services:
   app:
     image: ghcr.io/astral-sh/uv:python3.13-bookworm-slim
-
     container_name: python-bot
     restart: unless-stopped
-
     working_dir: /app
+    # [중요] 현재 폴더를 마운트 (여기에 코드가 다운로드됨)
     volumes:
       - .:/app
-
     environment:
       - UV_COMPILE_BYTECODE=1
       - UV_LINK_MODE=copy
-      - DISCORD_TOKEN=<TOKEN>
-      - MONGO_URI=<URI>
+      - GIT_REPO_URL=https://github.com/ribeKim/NotifyBot.git
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - MONGO_URI=${MONGO_URI}
+    command: >
+      /bin/bash -c " apt-get update && apt-get install -y git &&
 
-    command: uv run --locked --no-dev bot.py
+      echo '🔍 Debug: Repo URL is: ' $$GIT_REPO_URL &&
+
+      if [ -z \"$$GIT_REPO_URL\" ]; then
+        echo '❌ Error: GIT_REPO_URL is empty! Check environment variables.' && exit 1;
+      fi &&
+
+      echo '🔄 Checking Code...' && if [ -d bot_code ]; then
+        echo '⬇️ Folder exists, attempting update...' &&
+        cd bot_code &&
+        git pull origin main || (echo '⚠️ Git error detected! Re-cloning...' && cd .. && rm -rf bot_code && git clone $$GIT_REPO_URL bot_code);
+        cd ..;
+      else
+        echo '✨ First time setup...' &&
+        git clone $$GIT_REPO_URL bot_code;
+      fi &&
+
+      echo '🚀 Starting...' && cd bot_code && uv sync --frozen --no-dev && uv run --locked --no-dev bot.py "
